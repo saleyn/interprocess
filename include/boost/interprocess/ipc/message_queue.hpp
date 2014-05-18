@@ -76,7 +76,8 @@ class message_queue_t
                  const char *name,
                  size_type max_num_msg,
                  size_type max_msg_size,
-                 const permissions &perm = permissions());
+                 const permissions &perm = permissions(),
+                 void* base_addr = static_cast<void*>(0));
 
    //!Opens or creates a process shared message queue with name "name".
    //!If the queue is created, the maximum number of messages will be "max_num_msg"
@@ -87,13 +88,15 @@ class message_queue_t
                  const char *name,
                  size_type max_num_msg,
                  size_type max_msg_size,
-                 const permissions &perm = permissions());
+                 const permissions &perm = permissions(),
+                 void* base_addr = static_cast<void*>(0));
 
    //!Opens a previously created process shared message queue with name "name".
    //!If the queue was not previously created or there are no free resources,
    //!throws an error.
    message_queue_t(open_only_t open_only,
-                 const char *name);
+                 const char *name,
+                 void* base_addr = static_cast<void*>(0));
 
    //!Destroys *this and indicates that the calling process is finished using
    //!the resource. All opened message queues are still
@@ -641,13 +644,14 @@ inline message_queue_t<VoidPointer>::message_queue_t(create_only_t,
                                     const char *name,
                                     size_type max_num_msg,
                                     size_type max_msg_size,
-                                    const permissions &perm)
+                                    const permissions &perm,
+                                    void* base_addr)
       //Create shared memory and execute functor atomically
    :  m_shmem(create_only,
               name,
               get_mem_size(max_msg_size, max_num_msg),
               read_write,
-              static_cast<void*>(0),
+              base_addr,
               //Prepare initialization functor
               ipcdetail::msg_queue_initialization_func_t<VoidPointer> (max_num_msg, max_msg_size),
               perm)
@@ -658,25 +662,28 @@ inline message_queue_t<VoidPointer>::message_queue_t(open_or_create_t,
                                     const char *name,
                                     size_type max_num_msg,
                                     size_type max_msg_size,
-                                    const permissions &perm)
+                                    const permissions &perm,
+                                    void* base_addr)
       //Create shared memory and execute functor atomically
    :  m_shmem(open_or_create,
               name,
               get_mem_size(max_msg_size, max_num_msg),
               read_write,
-              static_cast<void*>(0),
+              base_addr,
               //Prepare initialization functor
               ipcdetail::msg_queue_initialization_func_t<VoidPointer> (max_num_msg, max_msg_size),
               perm)
 {}
 
 template<class VoidPointer>
-inline message_queue_t<VoidPointer>::message_queue_t(open_only_t, const char *name)
+inline message_queue_t<VoidPointer>::message_queue_t(open_only_t,
+                                    const char *name,
+                                    void* base_addr)
    //Create shared memory and execute functor atomically
    :  m_shmem(open_only,
               name,
               read_write,
-              static_cast<void*>(0),
+              base_addr,
               //Prepare initialization functor
               ipcdetail::msg_queue_initialization_func_t<VoidPointer> ())
 {}
