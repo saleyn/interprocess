@@ -119,7 +119,8 @@ class upgradable_lock;
 template<class T, class SegmentManager>
 class allocator;
 
-template<class T, class SegmentManager, std::size_t NodesPerBlock = 64>
+template<class T, class SegmentManager, std::size_t NodesPerBlock = 64,
+         bool  PersistenPool = false,   bool WithLocking = true>
 class node_allocator;
 
 template<class T, class SegmentManager, std::size_t NodesPerBlock = 64>
