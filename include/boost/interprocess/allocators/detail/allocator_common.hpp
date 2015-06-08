@@ -708,7 +708,7 @@ bool operator!=(const cached_allocator_impl<T, N, V> &alloc1,
 //!a reference count but the class does not delete itself, this is
 //!responsibility of user classes. Node size (NodeSize) and the number of
 //!nodes allocated per block (NodesPerBlock) are known at compile time
-template<class private_node_allocator_t>
+template<class private_node_allocator_t, bool WithLocking>
 class shared_pool_impl
    : public private_node_allocator_t
 {
@@ -737,56 +737,74 @@ class shared_pool_impl
    //!Allocates array of count elements. Can throw boost::interprocess::bad_alloc
    void *allocate_node()
    {
-      //-----------------------
-      boost::interprocess::scoped_lock<mutex_type> guard(m_header);
-      //-----------------------
-      return private_node_allocator_t::allocate_node();
+      if (WithLocking)
+      {
+        boost::interprocess::scoped_lock<mutex_type> guard(m_header);
+        return private_node_allocator_t::allocate_node();
+      }
+      else
+        return private_node_allocator_t::allocate_node();
    }
 
    //!Deallocates an array pointed by ptr. Never throws
    void deallocate_node(void *ptr)
    {
-      //-----------------------
-      boost::interprocess::scoped_lock<mutex_type> guard(m_header);
-      //-----------------------
-      private_node_allocator_t::deallocate_node(ptr);
+      if (WithLocking)
+      {
+        boost::interprocess::scoped_lock<mutex_type> guard(m_header);
+        private_node_allocator_t::deallocate_node(ptr);
+      }
+      else
+        private_node_allocator_t::deallocate_node(ptr);
    }
 
    //!Allocates n nodes.
    //!Can throw boost::interprocess::bad_alloc
    void allocate_nodes(const size_type n, multiallocation_chain &chain)
    {
-      //-----------------------
-      boost::interprocess::scoped_lock<mutex_type> guard(m_header);
-      //-----------------------
-      private_node_allocator_t::allocate_nodes(n, chain);
+      if (WithLocking)
+      {
+        boost::interprocess::scoped_lock<mutex_type> guard(m_header);
+        private_node_allocator_t::allocate_nodes(n, chain);
+      }
+      else
+        private_node_allocator_t::allocate_nodes(n, chain);
    }
 
    //!Deallocates a linked list of nodes ending in null pointer. Never throws
    void deallocate_nodes(multiallocation_chain &nodes, size_type num)
    {
-      //-----------------------
-      boost::interprocess::scoped_lock<mutex_type> guard(m_header);
-      //-----------------------
-      private_node_allocator_t::deallocate_nodes(nodes, num);
+      if (WithLocking)
+      {
+        boost::interprocess::scoped_lock<mutex_type> guard(m_header);
+        private_node_allocator_t::deallocate_nodes(nodes, num);
+      }
+      else
+        private_node_allocator_t::deallocate_nodes(nodes, num);
    }
 
    //!Deallocates the nodes pointed by the multiallocation iterator. Never throws
    void deallocate_nodes(multiallocation_chain &chain)
    {
-      //-----------------------
-      boost::interprocess::scoped_lock<mutex_type> guard(m_header);
-      //-----------------------
-      private_node_allocator_t::deallocate_nodes(chain);
+      if (WithLocking)
+      {
+        boost::interprocess::scoped_lock<mutex_type> guard(m_header);
+        private_node_allocator_t::deallocate_nodes(chain);
+      }
+      else
+        private_node_allocator_t::deallocate_nodes(chain);
    }
 
    //!Deallocates all the free blocks of memory. Never throws
    void deallocate_free_blocks()
    {
-      //-----------------------
-      boost::interprocess::scoped_lock<mutex_type> guard(m_header);
-      //-----------------------
-      private_node_allocator_t::deallocate_free_blocks();
+      if (WithLocking)
+      {
+        boost::interprocess::scoped_lock<mutex_type> guard(m_header);
+        private_node_allocator_t::deallocate_free_blocks();
+      }
+      else
+        private_node_allocator_t::deallocate_free_blocks();
    }
 
    //!Deallocates all used memory from the common pool.
@@ -794,47 +812,65 @@ class shared_pool_impl
    //!already be deallocated. Otherwise, undefined behavior. Never throws
    void purge_blocks()
    {
-      //-----------------------
-      boost::interprocess::scoped_lock<mutex_type> guard(m_header);
-      //-----------------------
-      private_node_allocator_t::purge_blocks();
+      if (WithLocking)
+      {
+        boost::interprocess::scoped_lock<mutex_type> guard(m_header);
+        private_node_allocator_t::purge_blocks();
+      }
+      else
+        private_node_allocator_t::purge_blocks();
    }
 
    //!Increments internal reference count and returns new count. Never throws
    size_type inc_ref_count()
    {
-      //-----------------------
-      boost::interprocess::scoped_lock<mutex_type> guard(m_header);
-      //-----------------------
-      return ++m_header.m_usecount;
+      if (WithLocking)
+      {
+        boost::interprocess::scoped_lock<mutex_type> guard(m_header);
+        return ++m_header.m_usecount;
+      }
+      else
+        return ++m_header.m_usecount;
    }
 
    //!Decrements internal reference count and returns new count. Never throws
    size_type dec_ref_count()
    {
-      //-----------------------
-      boost::interprocess::scoped_lock<mutex_type> guard(m_header);
-      //-----------------------
-      BOOST_ASSERT(m_header.m_usecount > 0);
-      return --m_header.m_usecount;
+      if (WithLocking)
+      {
+        boost::interprocess::scoped_lock<mutex_type> guard(m_header);
+        BOOST_ASSERT(m_header.m_usecount > 0);
+        return --m_header.m_usecount;
+      }
+      else
+      {
+        BOOST_ASSERT(m_header.m_usecount > 0);
+        return --m_header.m_usecount;
+      }
    }
 
    //!Deprecated, use deallocate_free_blocks.
    void deallocate_free_chunks()
    {
-      //-----------------------
-      boost::interprocess::scoped_lock<mutex_type> guard(m_header);
-      //-----------------------
-      private_node_allocator_t::deallocate_free_blocks();
+      if (WithLocking)
+      {
+        boost::interprocess::scoped_lock<mutex_type> guard(m_header);
+        private_node_allocator_t::deallocate_free_blocks();
+      }
+      else
+        private_node_allocator_t::deallocate_free_blocks();
    }
 
    //!Deprecated, use purge_blocks.
    void purge_chunks()
    {
-      //-----------------------
-      boost::interprocess::scoped_lock<mutex_type> guard(m_header);
-      //-----------------------
-      private_node_allocator_t::purge_blocks();
+      if (WithLocking)
+      {
+        boost::interprocess::scoped_lock<mutex_type> guard(m_header);
+        private_node_allocator_t::purge_blocks();
+      }
+      else
+        private_node_allocator_t::purge_blocks();
    }
 
    private:

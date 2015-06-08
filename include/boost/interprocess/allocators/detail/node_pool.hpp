@@ -85,16 +85,17 @@ class private_node_pool
 template< class SegmentManager
         , std::size_t NodeSize
         , std::size_t NodesPerBlock
+        , bool WithLocking
         >
 class shared_node_pool
    :  public ipcdetail::shared_pool_impl
-      < private_node_pool
-         <SegmentManager, NodeSize, NodesPerBlock>
+      < private_node_pool<SegmentManager, NodeSize, NodesPerBlock>,
+        WithLocking
       >
 {
    typedef ipcdetail::shared_pool_impl
-      < private_node_pool
-         <SegmentManager, NodeSize, NodesPerBlock>
+      < private_node_pool<SegmentManager, NodeSize, NodesPerBlock>,
+        WithLocking
       > base_t;
    public:
    shared_node_pool(SegmentManager *segment_mgnr)
